@@ -31,7 +31,10 @@ class TestAccessNestedMap(unittest.TestCase):
 
         # Ensure the error message matches the missing key
         expected_message = repr(path[-1])
-        self.assertEqual(str(cm.exception), expected_message)
+        self.assertEqual(
+            str(cm.exception),
+            expected_message
+        )
 
 
 class TestGetJson(unittest.TestCase):
@@ -88,4 +91,3 @@ class TestMemoize(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
