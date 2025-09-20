@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import unittest
 from unittest.mock import patch, MagicMock
 from parameterized import parameterized_class
