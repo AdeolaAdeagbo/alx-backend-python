@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unittests for utils.py"""
+"""Unit tests for utils module"""
 
 import unittest
 from unittest.mock import patch, Mock
@@ -13,28 +13,46 @@ class TestAccessNestedMap(unittest.TestCase):
     @parameterized.expand([
         ({"a": 1}, ("a",), 1),
         ({"a": {"b": 2}}, ("a",), {"b": 2}),
-        ({"a": {"b": 2}}, ("a", "b"), 2)
+        ({"a": {"b": 2}}, ("a", "b"), 2),
     ])
     def test_access_nested_map(self, nested_map, path, expected):
+        """
+        Test that access_nested_map returns the correct value for various
+        nested map inputs. Verifies top-level and nested access.
+        """
         self.assertEqual(utils.access_nested_map(nested_map, path), expected)
 
     @parameterized.expand([
         ({}, ("a",)),
-        ({"a": 1}, ("a", "b"))
+        ({"a": 1}, ("a", "b")),
     ])
     def test_access_nested_map_exception(self, nested_map, path):
-        with self.assertRaises(KeyError):
+        """
+        Test that access_nested_map raises KeyError when the requested key
+        path does not exist in the provided nested map.
+        """
+        with self.assertRaises(KeyError) as cm:
             utils.access_nested_map(nested_map, path)
+
+        expected_message = repr(path[-1])
+        self.assertEqual(
+            str(cm.exception),
+            expected_message
+        )
 
 
 class TestGetJson(unittest.TestCase):
-    """Test cases for get_json"""
+    """Test cases for utils.get_json"""
 
     @parameterized.expand([
         ("http://example.com", {"payload": True}),
-        ("http://holberton.io", {"payload": False})
+        ("http://holberton.io", {"payload": False}),
     ])
     def test_get_json(self, test_url, test_payload):
+        """
+        Test that get_json returns the payload from a mocked requests.get
+        call. No real HTTP requests are performed.
+        """
         mock_response = Mock()
         mock_response.json.return_value = test_payload
 
@@ -43,9 +61,13 @@ class TestGetJson(unittest.TestCase):
 
 
 class TestMemoize(unittest.TestCase):
-    """Test cases for memoize"""
+    """Test cases for memoize decorator"""
 
     def test_memoize(self):
+        """
+        Test that memoize caches the result of a method so that the
+        underlying method is called only once across multiple accesses.
+        """
         class TestClass:
             def a_method(self):
                 return 42
@@ -55,7 +77,9 @@ class TestMemoize(unittest.TestCase):
                 return self.a_method()
 
         with patch.object(
-            TestClass, "a_method", return_value=42
+            TestClass,
+            "a_method",
+            return_value=42,
         ) as mock_method:
             obj = TestClass()
 
@@ -63,6 +87,7 @@ class TestMemoize(unittest.TestCase):
             self.assertEqual(obj.a_property, 42)
             self.assertEqual(obj.a_property, 42)
 
+            # Underlying method should have been called only once
             mock_method.assert_called_once()
 
 
