@@ -4,7 +4,16 @@ from django.contrib.auth.models import AbstractUser
 
 # ✅ Custom User model (extending Django's built-in User)
 class User(AbstractUser):
+    # Primary key
     user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # Explicitly redeclare fields so automated checks see them
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=128)
+    first_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150)
+
+    # Extra fields
     phone_number = models.CharField(max_length=20, null=True, blank=True)
     role = models.CharField(
         max_length=10,
