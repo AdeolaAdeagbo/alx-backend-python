@@ -1,58 +1,36 @@
 from rest_framework import serializers
 from .models import User, Conversation, Message
 
-# ✅ User serializer
+# ✅ User Serializer
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)  # explicit CharField for input
+    email = serializers.CharField()  # explicit CharField for email
+
     class Meta:
         model = User
-        fields = [
-            'user_id',
-            'username',
-            'email',
-            'first_name',
-            'last_name',
-            'password',
-            'phone_number',
-            'role'
-        ]
-        extra_kwargs = {
-            'password': {'write_only': True}  # Password won't be exposed in API responses
-        }
-
-    # Encrypt password when creating a new user
-    def create(self, validated_data):
-        password = validated_data.pop('password')
-        user = User(**validated_data)
-        user.set_password(password)
-        user.save()
-        return user
+        fields = ['user_id', 'username', 'email', 'first_name', 'last_name', 'password', 'phone_number', 'role']
 
 
-# ✅ Message serializer
+# ✅ Message Serializer
 class MessageSerializer(serializers.ModelSerializer):
-    sender = UserSerializer(read_only=True)  # Nested info about sender
+    sender = UserSerializer(read_only=True)
+    message_body = serializers.CharField()  # explicit CharField
 
     class Meta:
         model = Message
-        fields = [
-            'message_id',
-            'sender',
-            'message_body',
-            'sent_at'
-        ]
+        fields = ['message_id', 'sender', 'conversation', 'message_body', 'sent_at']
 
 
-# ✅ Conversation serializer
+# ✅ Conversation Serializer
 class ConversationSerializer(serializers.ModelSerializer):
-    participants = UserSerializer(many=True, read_only=True)  # Nested participants
-    messages = MessageSerializer(many=True, read_only=True)   # Nested messages
+    participants = UserSerializer(many=True, read_only=True)
+    messages = serializers.SerializerMethodField()  # dynamic field for nested messages
 
     class Meta:
         model = Conversation
-        fields = [
-            'conversation_id',
-            'participants',
-            'messages',
-            'created_at'
-        ]
+        fields = ['conversation_id', 'participants', 'messages', 'created_at']
 
+    def get_messages(self, obj):
+        # returns all messages for this conversation using the MessageSerializer
+        messages = obj.messages.all().order_by('sent_at')
+        return MessageSerializer(messages, many=True).data
