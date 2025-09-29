@@ -27,3 +27,38 @@ class MessageHistory(models.Model):
     def __str__(self):
         return f"History for Message {self.message.id} at {self.edited_at}"
 
+# --- Example queries for threaded conversations ---
+
+from django.db.models import Prefetch
+
+def get_top_level_messages_with_replies():
+    """
+    Fetch top-level messages (parent_message is None)
+    with sender, receiver, and all replies efficiently.
+    """
+    # Prefetch replies for each message
+    replies_prefetch = Prefetch('replies', queryset=Message.objects.all())
+    
+    messages = Message.objects.filter(parent_message__isnull=True)\
+        .select_related('sender', 'receiver')\
+        .prefetch_related(replies_prefetch)
+    
+    return messages
+
+def get_threaded_replies(message):
+    """
+    Recursively fetch all replies for a message.
+    """
+    thread = []
+    for reply in message.replies.all():  # uses prefetched data
+        thread.append(reply)
+        thread.extend(get_threaded_replies(reply))
+    return thread
+
+# Example usage:
+# top_messages = get_top_level_messages_with_replies()
+# for msg in top_messages:
+#     print(msg.content)
+#     all_replies = get_threaded_replies(msg)
+#     for r in all_replies:
+#         print(f"  ↳ {r.content}")
