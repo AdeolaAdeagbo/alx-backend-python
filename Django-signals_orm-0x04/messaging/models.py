@@ -5,15 +5,18 @@ from django.db.models import Prefetch
 
 # --- Custom Manager for Unread Messages ---
 class UnreadMessagesManager(models.Manager):
-    def for_user(self, user):
+    def unread_for_user(self, user):
         """
         Returns unread top-level messages for a specific user.
         Optimized with .only(), select_related, and prefetch_related.
         """
-        return self.filter(receiver=user, read=False, parent_message__isnull=True)\
-                   .only('id', 'sender', 'content', 'timestamp', 'parent_message')\
-                   .select_related('sender', 'receiver')\
-                   .prefetch_related('replies')
+        return self.filter(
+            receiver=user,
+            read=False,
+            parent_message__isnull=True
+        ).only('id', 'sender', 'content', 'timestamp', 'parent_message')\
+         .select_related('sender', 'receiver')\
+         .prefetch_related('replies')
 
 
 # --- Message Model ---
@@ -25,10 +28,10 @@ class Message(models.Model):
     edited = models.BooleanField(default=False)
     read = models.BooleanField(default=False)
     parent_message = models.ForeignKey(
-        'self', 
-        null=True, 
-        blank=True, 
-        on_delete=models.CASCADE, 
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
         related_name='replies'
     )
 
@@ -58,12 +61,13 @@ def get_top_level_messages_with_replies():
     with sender, receiver, and all replies efficiently.
     """
     replies_prefetch = Prefetch('replies', queryset=Message.objects.all())
-    
+
     messages = Message.objects.filter(parent_message__isnull=True)\
         .select_related('sender', 'receiver')\
         .prefetch_related(replies_prefetch)
-    
+
     return messages
+
 
 def get_threaded_replies(message):
     """
