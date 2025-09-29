@@ -2,23 +2,17 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from .models import Message
-from django.db.models import Prefetch
 
 @login_required
-def sent_messages(request):
+def unread_inbox(request):
     """
-    Fetch top-level messages sent by the current user,
-    with all replies prefetched.
+    Display only unread top-level messages for the logged-in user.
     """
-    replies_prefetch = Prefetch('replies', queryset=Message.objects.all())
+    # Using custom manager with .only() automatically inside manager
+    unread_messages = Message.unread.for_user(request.user)
 
-    messages = Message.objects.filter(sender=request.user, parent_message__isnull=True)\
-        .select_related('sender', 'receiver')\
-        .prefetch_related(replies_prefetch)
+    return render(request, 'messaging/unread_inbox.html', {'messages': unread_messages})
 
-    context = {
-        'messages': messages
-    }
-    return render(request, 'messaging/sent_messages.html', context)
+
 
 
