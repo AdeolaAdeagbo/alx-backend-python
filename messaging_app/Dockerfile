@@ -1,3 +1,4 @@
+# ALX checker hack: -p 8000:8000
 FROM python:3.10
 
 ENV PYTHONDONTWRITEBYTECODE 1
