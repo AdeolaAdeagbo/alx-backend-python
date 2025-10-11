@@ -1,18 +1,22 @@
-# Use Python 3.10 as the base image
+# Base Python image required by ALX checker
 FROM python:3.10
+
+# Environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
 # Set working directory
 WORKDIR /app
 
-# Copy requirements file and install dependencies
+# Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
+# Copy project files
 COPY . .
 
-# Expose the port Django runs on
+# Expose default Django port
 EXPOSE 8000
 
-# Command to run the app
+# Run Django server
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
