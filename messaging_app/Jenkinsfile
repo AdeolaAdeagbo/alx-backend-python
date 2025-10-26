@@ -1,6 +1,11 @@
 pipeline {
     agent any
     
+    environment {
+        DOCKER_IMAGE = 'Oriadee/messaging-app'
+        DOCKER_TAG = "${BUILD_NUMBER}"
+    }
+    
     stages {
         stage('Checkout') {
             steps {
@@ -9,24 +14,12 @@ pipeline {
             }
         }
         
-        stage('Environment Setup') {
-            steps {
-                echo 'Setting up environment...'
-                sh '''
-                    echo "Python version:"
-                    python3 --version || python --version || echo "Python check completed"
-                    echo "pip version:"
-                    pip3 --version || pip --version || echo "Pip check completed"
-                '''
-            }
-        }
-        
         stage('Install Dependencies') {
             steps {
                 echo 'Installing dependencies...'
                 sh '''
                     cd messaging_app
-                    pip3 install --user -r requirements.txt || pip install --user -r requirements.txt || echo "Dependencies installation attempted"
+                    pip3 install --user -r requirements.txt || echo "Dependencies installation attempted"
                 '''
             }
         }
@@ -37,19 +30,27 @@ pipeline {
                 sh '''
                     cd messaging_app
                     export DJANGO_SETTINGS_MODULE=messaging_app.settings
-                    python3 -m pytest ../chats/tests.py --verbose --junit-xml=test-results.xml || python -m pytest ../chats/tests.py --verbose --junit-xml=test-results.xml || echo "Tests execution attempted"
+                    python3 -m pytest ../chats/tests.py --verbose --junit-xml=test-results.xml || echo "Tests attempted"
                 '''
             }
         }
         
-        stage('Generate Test Report') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Test report generation completed'
+                echo 'Building Docker image...'
                 script {
-                    if (fileExists('messaging_app/test-results.xml')) {
-                        junit 'messaging_app/test-results.xml'
-                    } else {
-                        echo 'Test results file not found, skipping report generation'
+                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}", "./messaging_app")
+                }
+            }
+        }
+        
+        stage('Push to Docker Hub') {
+            steps {
+                echo 'Pushing Docker image to Docker Hub...'
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-credentials') {
+                        docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}").push()
+                        docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}").push('latest')
                     }
                 }
             }
@@ -61,7 +62,7 @@ pipeline {
             echo 'Pipeline completed!'
         }
         success {
-            echo 'Pipeline executed successfully!'
+            echo 'Docker image built and pushed successfully!'
         }
         failure {
             echo 'Pipeline failed. Check logs for details.'
